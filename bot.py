@@ -2,6 +2,7 @@ import discord
 from discord.ext import commands
 import requests
 import urllib3
+import os
 urllib3.disable_warnings()
 
 intents = discord.Intents.default()
@@ -42,4 +43,4 @@ async def blocked(ctx, site: str):
     else:
         await ctx.send(f'⚪ **UNKNOWN**: `{site}` (timeout or error)')
 
-bot.run('token')
+bot.run(os.environ['TOKEN'])
