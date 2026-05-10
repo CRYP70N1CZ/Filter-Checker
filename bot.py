@@ -1,31 +1,27 @@
 import discord
 from discord.ext import commands
 from discord import app_commands
-import requests
-import urllib3
+import aiohttp
 import os
-urllib3.disable_warnings()
 
 intents = discord.Intents.default()
 intents.message_content = True
 bot = commands.Bot(command_prefix='!', intents=intents)
 
-def check_blocked(site):
-    proxies = {
-        'http': 'http://ckr01.rsdmo.org:8080',
-        'https': 'http://ckr01.rsdmo.org:8080'
-    }
+async def check_blocked(site):
+    proxy = 'http://ckr01.rsdmo.org:8080'
     try:
-        r = requests.get(f'http://{site}', proxies=proxies, timeout=5, allow_redirects=False)
-        if 'ck-block' in r.text or 'blockpage' in r.text:
-            return 'BLOCKED'
-    except:
-        pass
-    try:
-        requests.get(f'https://{site}', proxies=proxies, timeout=5, verify=False)
-        return 'ALLOWED'
-    except requests.exceptions.ProxyError:
-        return 'BLOCKED'
+        async with aiohttp.ClientSession() as session:
+            async with session.get(
+                f'http://{site}',
+                proxy=proxy,
+                timeout=aiohttp.ClientTimeout(total=2),
+                allow_redirects=False
+            ) as r:
+                text = await r.text()
+                if 'ck-block' in text or 'blockpage' in text:
+                    return 'BLOCKED'
+                return 'ALLOWED'
     except:
         return 'UNKNOWN'
 
@@ -38,7 +34,7 @@ async def on_ready():
 @app_commands.describe(site="The site to check e.g. tiktok.com")
 async def check(interaction: discord.Interaction, site: str):
     await interaction.response.defer()
-    result = check_blocked(site)
+    result = await check_blocked(site)
     if result == 'BLOCKED':
         await interaction.followup.send(f'🔴 **BLOCKED**: `{site}`')
     elif result == 'ALLOWED':
