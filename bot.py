@@ -1,5 +1,6 @@
 import discord
 from discord.ext import commands
+from discord import app_commands
 import requests
 import urllib3
 import os
@@ -30,17 +31,19 @@ def check_blocked(site):
 
 @bot.event
 async def on_ready():
+    await bot.tree.sync()
     print(f'Logged in as {bot.user}')
 
-@bot.command()
-async def blocked(ctx, site: str):
-    await ctx.send(f'Checking `{site}`...')
+@bot.tree.command(name="check", description="Check if a site is blocked by Rockwood filter")
+@app_commands.describe(site="The site to check e.g. tiktok.com")
+async def check(interaction: discord.Interaction, site: str):
+    await interaction.response.defer()
     result = check_blocked(site)
     if result == 'BLOCKED':
-        await ctx.send(f'🔴 **BLOCKED**: `{site}`')
+        await interaction.followup.send(f'🔴 **BLOCKED**: `{site}`')
     elif result == 'ALLOWED':
-        await ctx.send(f'🟢 **ALLOWED**: `{site}`')
+        await interaction.followup.send(f'🟢 **ALLOWED**: `{site}`')
     else:
-        await ctx.send(f'⚪ **UNKNOWN**: `{site}` (timeout or error)')
+        await interaction.followup.send(f'⚪ **UNKNOWN**: `{site}`')
 
 bot.run(os.environ['TOKEN'])
